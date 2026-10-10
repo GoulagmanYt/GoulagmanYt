@@ -3,25 +3,53 @@
   <img src="assets/name.svg" width="760" alt="Goulagman" />
 </picture>
 
-**Mechanical engineering student, France.** Open source, music, and a bit of tinkering.
+<picture>
+  <source media="(max-width: 600px) and (prefers-color-scheme: dark)" srcset="assets/about-mobile-dark.svg" />
+  <source media="(max-width: 600px)" srcset="assets/about-mobile.svg" />
+  <source media="(prefers-color-scheme: dark)" srcset="assets/about-dark.svg" />
+  <img src="assets/about.svg" width="760" alt="Mechanical engineering student, France. I&#x27;m not a developer; I love coding in my free time, where software, hardware, and music meet. Still a Padawan, always learning. I write my contributions to other people&#x27;s repositories myself. Some personal projects, including OSCMidi, are vibe-coded with AI." />
+</picture>
 
-I'm not a developer; I just love coding in my free time, especially when software meets hardware. Still a Padawan, always learning.
+<picture>
+  <source media="(max-width: 600px) and (prefers-color-scheme: dark)" srcset="assets/heading-projects-mobile-dark.svg" />
+  <source media="(max-width: 600px)" srcset="assets/heading-projects-mobile.svg" />
+  <source media="(prefers-color-scheme: dark)" srcset="assets/heading-projects-dark.svg" />
+  <img src="assets/heading-projects.svg" width="760" alt="Selected projects" />
+</picture>
 
-I write my contributions to other people's repositories myself. Some of my personal projects are **vibe-coded with AI**, including OSCMidi.
+<picture>
+  <source media="(max-width: 600px) and (prefers-color-scheme: dark)" srcset="assets/project-osc-mobile-dark.svg" />
+  <source media="(max-width: 600px)" srcset="assets/project-osc-mobile.svg" />
+  <source media="(prefers-color-scheme: dark)" srcset="assets/project-osc-dark.svg" />
+  <a href="https://github.com/GoulagmanYt/RTP-OSC-Midi-tool"><img src="assets/project-osc.svg" width="760" alt="OSCMidi: a Windows bridge for RTP-MIDI, local MIDI, OSC, and VST instruments. Rust, TypeScript, Tauri. Vibe-coded with AI." /></a>
+</picture>
 
-### Selected projects
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/link-downloads-dark.svg" />
+  <a href="https://github.com/GoulagmanYt/RTP-OSC-Midi-tool/releases"><img src="assets/link-downloads.svg" width="242" alt="Releases and downloads" /></a>
+</picture>
 
-**[OSCMidi](https://github.com/GoulagmanYt/RTP-OSC-Midi-tool)** · Rust / TypeScript / Tauri  
-A Windows bridge for RTP-MIDI, MIDI, OSC, and VST instruments.  
-<sub>Vibe-coded with AI · <a href="https://github.com/GoulagmanYt/RTP-OSC-Midi-tool/releases">Releases & downloads</a></sub>
+<picture>
+  <source media="(max-width: 600px) and (prefers-color-scheme: dark)" srcset="assets/project-piano-mobile-dark.svg" />
+  <source media="(max-width: 600px)" srcset="assets/project-piano-mobile.svg" />
+  <source media="(prefers-color-scheme: dark)" srcset="assets/project-piano-dark.svg" />
+  <a href="https://github.com/GoulagmanYt/Piano_Led_Visualizer_menulcd_tester"><img src="assets/project-piano.svg" width="760" alt="Piano LED menu tester: test and display Piano LED Visualizer menus. Python. AI-assisted experiment." /></a>
+</picture>
 
-**[Piano LED menu tester](https://github.com/GoulagmanYt/Piano_Led_Visualizer_menulcd_tester)** · Python  
-A small experiment to test and display Piano LED Visualizer menus.  
-<sub>AI-assisted · Related: <a href="https://github.com/GoulagmanYt/Piano-LED-Visualizer">my Piano LED Visualizer fork</a></sub>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/link-fork-dark.svg" />
+  <a href="https://github.com/GoulagmanYt/Piano-LED-Visualizer"><img src="assets/link-fork.svg" width="262" alt="Piano LED Visualizer fork" /></a>
+</picture>
 
-### My tools
+<picture>
+  <source media="(max-width: 600px) and (prefers-color-scheme: dark)" srcset="assets/heading-tools-mobile-dark.svg" />
+  <source media="(max-width: 600px)" srcset="assets/heading-tools-mobile.svg" />
+  <source media="(prefers-color-scheme: dark)" srcset="assets/heading-tools-dark.svg" />
+  <img src="assets/heading-tools.svg" width="760" alt="My tools" />
+</picture>
 
 <p>
+  &emsp;&emsp;
   <a href="https://code.visualstudio.com/" title="Visual Studio Code"><img src="assets/logos/vscode.png" width="36" height="36" alt="Visual Studio Code" /></a>
   &nbsp; &nbsp;
   <a href="https://antigravity.google/" title="Google Antigravity"><img src="assets/logos/antigravity.svg" width="36" height="36" alt="Google Antigravity" /></a>
@@ -39,6 +67,14 @@ A small experiment to test and display Piano LED Visualizer menus.
   <img src="assets/stats.svg" width="760" alt="Total stars, profile views, current streak, and contribution calendar. Updated daily." />
 </picture>
 
-[All repositories](https://github.com/GoulagmanYt?tab=repositories) &nbsp; · &nbsp; [My pull requests](https://github.com/issues?q=is%3Apr%20author%3AGoulagmanYt%20archived%3Afalse)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/link-repos-dark.svg" />
+  <a href="https://github.com/GoulagmanYt?tab=repositories"><img src="assets/link-repos.svg" width="187" alt="All repositories" /></a>
+</picture>
+&nbsp; &nbsp;
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/link-prs-dark.svg" />
+  <a href="https://github.com/issues?q=is%3Apr%20author%3AGoulagmanYt%20archived%3Afalse"><img src="assets/link-prs.svg" width="192" alt="My pull requests" /></a>
+</picture>
 
 <img src="https://komarev.com/ghpvc/?username=GoulagmanYt&amp;style=pixel" width="1" height="1" alt="" />

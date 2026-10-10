@@ -77,13 +77,13 @@ def profile_views(username):
 
 
 class Drawing:
-    def __init__(self, height, title, description):
+    def __init__(self, height, title, description, width=760):
         self.font = TTFont(ROOT / "assets/fonts/Caveat.ttf")
         self.glyphs = self.font.getGlyphSet(location={"wght": 500})
         self.cmap = self.font.getBestCmap()
         self.units = self.font["head"].unitsPerEm
-        self.parts = [f'<svg xmlns="http://www.w3.org/2000/svg" width="760" height="{height}" '
-                      f'viewBox="0 0 760 {height}" role="img" aria-labelledby="title desc">',
+        self.parts = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+                      f'viewBox="0 0 {width} {height}" role="img" aria-labelledby="title desc">',
                       f'<title id="title">{escape(title)}</title>',
                       f'<desc id="desc">{escape(description)}</desc>',
                       '<!-- Transparent canvas integrates with the GitHub theme. -->']
@@ -108,6 +108,18 @@ class Drawing:
     def line(self, path, color=MUTED, width=1):
         self.parts.append(f'<path d="{path}" fill="none" stroke="{color}" stroke-width="{width}" stroke-linecap="round"/>')
 
+    def wrap(self, value, size, width):
+        lines, line = [], ""
+        for word in value.split():
+            candidate = f"{line} {word}".strip()
+            measured = sum(self.glyphs[self.cmap[ord(c)]].width for c in candidate) * size / self.units
+            if line and measured > width:
+                lines.append(line)
+                line = word
+            else:
+                line = candidate
+        return lines + [line] if line else lines
+
     def save(self, path):
         svg = "\n".join(self.parts + ["</svg>"]) + "\n"
         path.write_text(svg, encoding="utf-8")
@@ -130,6 +142,56 @@ def draw_name(name):
     for x, y in [(628, 36), (733, 66), (616, 94)]:
         art.line(f"M {x-2},{y} L {x+2},{y} M {x},{y-2} L {x},{y+2}", MUTED, 0.8)
     art.save(ROOT / "assets/name.svg")
+
+
+def draw_content():
+    blocks = [
+        ("about", "Mechanical engineering student / France", [
+            "I'm not a developer; I love coding in my free time, especially where software, hardware, and music meet. Still a Padawan, always learning.",
+            "I write my contributions to other people's repositories myself. Some of my personal projects are vibe-coded with AI, including OSCMidi."], None),
+        ("project-osc", "OSCMidi", [
+            "A Windows bridge for RTP-MIDI, local MIDI, OSC, and VST instruments."],
+            "Rust / TypeScript / Tauri / Vibe-coded with AI"),
+        ("project-piano", "Piano LED menu tester", [
+            "A small experiment to test and display Piano LED Visualizer menus."],
+            "Python / AI-assisted experiment"),
+    ]
+    for filename, title, paragraphs, note in blocks:
+        for mobile in [False, True]:
+            width, pad, body, heading = (380, 12, 24, 30) if mobile else (760, 36, 28, 34)
+            art = Drawing(1, title, " ".join([title, *paragraphs, note or ""]), width)
+            y = 35
+            for line in art.wrap(title, heading, width - 2 * pad):
+                art.text(line, pad, y, heading)
+                y += heading * 1.15
+            y -= heading * 1.15
+            for index, paragraph in enumerate(paragraphs):
+                y += 38 if index == 0 else 18
+                for line in art.wrap(paragraph, body, width - 2 * pad):
+                    art.text(line, pad, y, body)
+                    y += body * 1.3
+            if note:
+                y += 6
+                for line in art.wrap(note, body - 3, width - 2 * pad):
+                    art.text(line, pad, y, body - 3, MUTED)
+                    y += body * 1.2
+            height = round(y - body * (1.2 if note else 1.3) + 22)
+            art.parts[0] = art.parts[0].replace('height="1"', f'height="{height}"').replace(f'viewBox="0 0 {width} 1"', f'viewBox="0 0 {width} {height}"')
+            art.save(ROOT / f'assets/{filename}{"-mobile" if mobile else ""}.svg')
+    for filename, title in [("heading-projects", "Selected projects"), ("heading-tools", "My tools")]:
+        for mobile in [False, True]:
+            art = Drawing(64, title, title, 380 if mobile else 760)
+            art.text(title, 12 if mobile else 36, 43, 30 if mobile else 34)
+            art.line("M 220,34 L 368,34" if mobile else "M 300,34 Q 490,32 723,34", "#dadcd0")
+            art.save(ROOT / f'assets/{filename}{"-mobile" if mobile else ""}.svg')
+    for filename, title, width in [("link-downloads", "Releases & downloads", 242),
+                                    ("link-fork", "Piano LED Visualizer fork", 262),
+                                    ("link-repos", "All repositories", 187),
+                                    ("link-prs", "My pull requests", 192)]:
+        art = Drawing(38, title, title, width)
+        art.text(title, 36, 26, 25)
+        art.line(f"M 37,32 Q {width//2},34 {width-12},31", "#9da98a")
+        art.save(ROOT / f"assets/{filename}.svg")
 
 
 def language_totals(repos, username):
@@ -255,6 +317,7 @@ def main():
         print(f"Warning: profile views unavailable: {exc}")
         views = None
     draw_name("Goulagman")
+    draw_content()
     draw_languages(languages, project_count)
     draw_stats(stars, views, streak(history, today), days, today)
     print(f"Generated profile for {username}: {stars} stars, {views} views, {streak(history, today)} day streak")
