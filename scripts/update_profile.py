@@ -1,0 +1,273 @@
+"""Draw GitHub's public activity as self-contained, static SVG artwork."""
+
+import calendar
+from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
+from datetime import date, datetime, timedelta, timezone
+from html import escape
+import json
+import os
+from pathlib import Path
+import random
+import re
+import subprocess
+from urllib.request import Request, urlopen
+import xml.etree.ElementTree as ET
+
+from fontTools.pens.svgPathPen import SVGPathPen
+from fontTools.ttLib import TTFont
+
+ROOT = Path(__file__).resolve().parents[1]
+PAPER, INK, MUTED = "#faf8f2", "#343c36", "#72766a"
+COLORS = ["#ecece3", "#d7deca", "#acbea0", "#7f9a73", "#506e49"]
+
+
+def gh(*args):
+    result = subprocess.run(["gh", "api", *args], check=True, capture_output=True, text=True, encoding="utf-8")
+    data = json.loads(result.stdout)
+    if isinstance(data, dict) and data.get("errors"):
+        raise RuntimeError(f"GitHub GraphQL failed: {data['errors']}")
+    return data
+
+
+def contributions(username, start, end):
+    query = """query($user: String!, $from: DateTime!, $to: DateTime!) {
+      user(login: $user) { contributionsCollection(from: $from, to: $to) {
+        contributionCalendar { weeks { contributionDays {
+          date contributionCount contributionLevel
+        } } }
+      } }
+    }"""
+    data = gh("graphql", "-f", f"query={query}", "-f", f"user={username}",
+              "-f", f"from={start}", "-f", f"to={end}")
+    weeks = data["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
+    return [day for week in weeks for day in week["contributionDays"]]
+
+
+def streak(days, today):
+    """Allow today to be unfinished; a missing calendar day breaks a streak."""
+    counts = {date.fromisoformat(d["date"]): d["contributionCount"] for d in days}
+    cursor = today if counts.get(today, 0) else today - timedelta(days=1)
+    total = 0
+    while counts.get(cursor, 0):
+        total += 1
+        cursor -= timedelta(days=1)
+    return total
+
+
+def parse_views(svg):
+    root = ET.fromstring(svg)
+    label = root.attrib.get("aria-label", "")
+    match = re.search(r"Profile views:\s*([\d,]+)\s*$", label, re.I)
+    if not match:
+        values = [t.text.strip() for t in root.iter("{http://www.w3.org/2000/svg}text")
+                  if t.text and re.fullmatch(r"[\d,]+", t.text.strip())]
+        if not values:
+            raise ValueError("Profile counter returned no numeric count")
+        return int(values[-1].replace(",", ""))
+    return int(match[1].replace(",", ""))
+
+
+def profile_views(username):
+    # The service increments only github-camo requests. This fetch is read-only.
+    request = Request(f"https://komarev.com/ghpvc/?username={username}",
+                      headers={"User-Agent": "profile-artwork/1.0"})
+    with urlopen(request, timeout=30) as response:
+        return parse_views(response.read())
+
+
+class Drawing:
+    def __init__(self, height, title, description):
+        self.font = TTFont(ROOT / "assets/fonts/Caveat.ttf")
+        self.glyphs = self.font.getGlyphSet(location={"wght": 500})
+        self.cmap = self.font.getBestCmap()
+        self.units = self.font["head"].unitsPerEm
+        self.parts = [f'<svg xmlns="http://www.w3.org/2000/svg" width="760" height="{height}" '
+                      f'viewBox="0 0 760 {height}" role="img" aria-labelledby="title desc">',
+                      f'<title id="title">{escape(title)}</title>',
+                      f'<desc id="desc">{escape(description)}</desc>',
+                      f'<rect width="760" height="{height}" rx="12" fill="{PAPER}"/>']
+
+    def text(self, value, x, y, size, color=INK, center=False):
+        value = str(value)
+        scale = size / self.units
+        names = [self.cmap[ord(c)] for c in value]
+        width = sum(self.glyphs[n].width for n in names) * scale
+        if center:
+            x -= width / 2
+        self.parts.append(f'<g fill="{color}" aria-label="{escape(value, quote=True)}">')
+        for name in names:
+            pen = SVGPathPen(self.glyphs)
+            self.glyphs[name].draw(pen)
+            path = pen.getCommands()
+            if path:
+                self.parts.append(f'<path transform="translate({x:.3f} {y}) scale({scale:.5f} {-scale:.5f})" d="{path}"/>')
+            x += self.glyphs[name].width * scale
+        self.parts.append('</g>')
+
+    def line(self, path, color=MUTED, width=1):
+        self.parts.append(f'<path d="{path}" fill="none" stroke="{color}" stroke-width="{width}" stroke-linecap="round"/>')
+
+    def save(self, path):
+        path.write_text("\n".join(self.parts + ["</svg>"]) + "\n", encoding="utf-8")
+
+
+def draw_name(name, username):
+    art = Drawing(190, f"{name} / {username}", "Handwritten names with small engineering and audio sketches.")
+    # Quiet graph-paper corners, a dimensioned part, and an audio waveform.
+    for x in list(range(28, 181, 16)) + list(range(588, 741, 16)):
+        for y in range(25, 174, 16):
+            art.parts.append(f'<circle cx="{x}" cy="{y}" r="0.7" fill="#d8ddcf"/>')
+    art.line("M 57,79 L 109,64 L 140,84 L 88,101 Z M 57,79 L 58,117 L 89,138 L 140,119 L 140,84 M 88,101 L 89,138", "#9ba68e", 1.5)
+    art.line("M 50,146 L 83,166 M 49,141 L 49,151 M 83,161 L 83,171", "#b8beac")
+    art.line("M 618,101 Q 627,101 634,101 L 640,83 L 649,124 L 658,63 L 668,131 L 678,88 L 685,101 L 711,101", "#9ba68e", 1.7)
+    art.line("M 616,144 Q 661,146 711,142", "#d5d9cb")
+    art.text(name, 380, 91, 68, center=True)
+    art.line("M 255,107 Q 369,111 503,103", "#9da98a", 2.5)
+    art.line("M 281,113 Q 380,115 479,108", "#d7ddcd", 1.3)
+    art.text(username, 380, 149, 27, MUTED, center=True)
+    art.save(ROOT / "assets/name.svg")
+
+
+def draw_sections():
+    for filename, title, number in [("workbench", "On my workbench", "01"),
+                                     ("toolbox", "Languages & tools", "02"),
+                                     ("activity", "A little activity", "03")]:
+        art = Drawing(58, title, title)
+        art.text(number, 25, 38, 21, MUTED)
+        art.text(title, 69, 41, 36)
+        art.line("M 328,32 Q 505,30 731,33", "#d7ddcd")
+        art.save(ROOT / f"assets/{filename}.svg")
+
+
+def language_totals(repos, username):
+    projects = [repo for repo in repos if not repo["fork"]
+                and repo["name"].lower() != username.lower()]
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = pool.map(lambda repo: gh(f'repos/{repo["full_name"]}/languages'), projects)
+        totals = Counter()
+        for languages in results:
+            totals.update(languages)
+    return totals, len(projects)
+
+
+def language_shares(totals):
+    """Group small languages and apportion tenths so the displayed sum is 100%."""
+    ordered = sorted(((name, size) for name, size in totals.items() if size > 0),
+                     key=lambda item: (-item[1], item[0]))
+    if not ordered:
+        return []
+    grouped = ordered[:5]
+    if len(ordered) > 5:
+        grouped.append(("Other", sum(size for _, size in ordered[5:])))
+    total = sum(size for _, size in grouped)
+    tenths = [size * 1000 // total for _, size in grouped]
+    by_remainder = sorted(range(len(grouped)),
+                          key=lambda i: -(grouped[i][1] * 1000 % total))
+    for i in by_remainder[:1000 - sum(tenths)]:
+        tenths[i] += 1
+    return [(name, units / 10) for (name, _), units in zip(grouped, tenths)]
+
+
+def draw_languages(totals, project_count):
+    shares = language_shares(totals)
+    full_total = sum(totals.values())
+    description = "; ".join(f"{name}: {size / full_total:.2%}" for name, size in
+                            sorted(totals.items(), key=lambda item: -item[1])) if full_total else "No language data yet."
+    art = Drawing(280, "Languages in my projects", description)
+    art.text("Languages in my projects", 36, 43, 30)
+    art.text(f"{project_count} public projects / by code size", 36, 72, 21, MUTED)
+    palette = ["#65805e", "#899d7e", "#a9b69d", "#b3aa8e", "#8eaaa4", "#c6c8b7"]
+    if not shares:
+        art.text("No language data yet", 36, 143, 27, MUTED)
+    for i, (name, percent) in enumerate(shares):
+        x, y = 36 + (i % 2) * 360, 111 + (i // 2) * 50
+        art.text(name, x, y, 27)
+        art.text(f"{percent:.1f}%", x + 246, y, 27, MUTED)
+        art.parts.append(f'<rect x="{x}" y="{y+10}" width="292" height="5" rx="2.5" fill="#e5e7dd"/>')
+        if percent:
+            art.parts.append(f'<rect x="{x}" y="{y+10}" width="{292*percent/100:.2f}" height="5" rx="2.5" fill="{palette[i]}"/>')
+    art.text("Original repositories only / excludes forks and this profile", 36, 258, 20, MUTED)
+    art.save(ROOT / "assets/languages.svg")
+    print("Languages: " + ", ".join(f"{name} {percent:.1f}%" for name, percent in shares))
+
+
+def draw_stats(stars, views, current, days, today):
+    days = sorted((d for d in days if date.fromisoformat(d["date"]) <= today), key=lambda d: d["date"])
+    total = sum(d["contributionCount"] for d in days)
+    view_label = f"{views:,}" if views is not None else "unavailable"
+    description = (f"{stars} total stars across owned public repositories; {view_label} profile page hits; "
+                   f"{current} day current streak; {total} contributions in the displayed year. "
+                   f"Updated {today.isoformat()} UTC. Views are not unique visitors.")
+    art = Drawing(350, "GitHub activity", description)
+    for x, value, label in [(134, f"{stars:,}", "total stars"),
+                             (380, view_label, "profile views"),
+                             (626, f"{current} " + ("day" if current == 1 else "days"), "current streak")]:
+        art.text(value, x, 61, 42 if views is not None or x != 380 else 29, center=True)
+        art.text(label, x, 91, 24, MUTED, center=True)
+    art.line("M 257,30 Q 255,61 257,91", "#dadcd0")
+    art.line("M 503,30 Q 501,59 503,91", "#dadcd0")
+    art.line("M 35,115 Q 370,113 725,116", "#dadcd0")
+    art.text("contributions / past year", 36, 149, 26)
+    art.text(f"{total:,} contributions", 569, 149, 22, MUTED)
+    start = date.fromisoformat(days[0]["date"])
+    sunday = start - timedelta(days=(start.weekday() + 1) % 7)
+    levels = {"NONE": 0, "FIRST_QUARTILE": 1, "SECOND_QUARTILE": 2,
+              "THIRD_QUARTILE": 3, "FOURTH_QUARTILE": 4}
+    rng = random.Random(41)
+    last_month = None
+    for day in days:
+        when = date.fromisoformat(day["date"])
+        column = (when - sunday).days // 7
+        row = (when.weekday() + 1) % 7
+        x, y = 36 + column * 13, 193 + row * 13
+        if when.month != last_month and (when.day == 1 or last_month is None):
+            if when.day == 1 or when.day < 22:
+                art.text(calendar.month_abbr[when.month], x, 181, 17, MUTED)
+            last_month = when.month
+        angle = rng.uniform(-4, 4)
+        color = COLORS[levels[day["contributionLevel"]]]
+        art.parts.append(f'<rect x="{x}" y="{y}" width="9.5" height="9.5" rx="2" '
+                         f'transform="rotate({angle:.2f} {x+5} {y+5})" fill="{color}" '
+                         f'stroke="{INK}" stroke-opacity="0.12" stroke-width="0.6">'
+                         f'<title>{day["date"]}: {day["contributionCount"]} contributions</title></rect>')
+    art.text(f"updated {today.strftime('%d %b %Y')} / daily", 36, 315, 19, MUTED)
+    art.text("less", 556, 314, 19, MUTED)
+    for i, color in enumerate(COLORS):
+        art.parts.append(f'<rect x="{592+i*14}" y="303" width="10" height="10" rx="2" fill="{color}"/>')
+    art.text("more", 668, 314, 19, MUTED)
+    art.text("views = page hits, not unique visitors", 36, 335, 16, MUTED)
+    art.save(ROOT / "assets/stats.svg")
+
+
+def main():
+    username = os.environ.get("PROFILE_USERNAME", "GoulagmanYt")
+    if not re.fullmatch(r"[A-Za-z0-9-]+", username):
+        raise ValueError("Invalid GitHub username")
+    now = datetime.now(timezone.utc)
+    today = now.date()
+    profile = gh(f"users/{username}")
+    repos = gh("--paginate", "--slurp", f"users/{username}/repos?per_page=100&type=owner")
+    stars = sum(repo["stargazers_count"] for page in repos for repo in page)
+    languages, project_count = language_totals([repo for page in repos for repo in page], username)
+    start = today - timedelta(days=364)
+    days = contributions(username, f"{start}T00:00:00Z", now.isoformat())
+    history = list(days)
+    while streak(history, today) >= (today - start).days and start > date.fromisoformat(profile["created_at"][:10]):
+        end = start - timedelta(days=1)
+        start -= timedelta(days=365)
+        history.extend(contributions(username, f"{start}T00:00:00Z", f"{end}T23:59:59Z"))
+    try:
+        views = profile_views(username)
+    except Exception as exc:
+        print(f"Warning: profile views unavailable: {exc}")
+        views = None
+    draw_name(profile.get("name") or username, username)
+    draw_sections()
+    draw_languages(languages, project_count)
+    draw_stats(stars, views, streak(history, today), days, today)
+    print(f"Generated profile for {username}: {stars} stars, {views} views, {streak(history, today)} day streak")
+
+
+if __name__ == "__main__":
+    main()
