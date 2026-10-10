@@ -1,11 +1,11 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/name-dark.svg" />
-  <img src="assets/name.svg" width="760" alt="Goulagman / GoulagmanYt" />
+  <img src="assets/name.svg" width="760" alt="Goulagman" />
 </picture>
 
 **Mechanical engineering student, France.** Open source, music, and a bit of tinkering.
 
-I'm not a developer; I just love coding in my free time, especially when software meets hardware.
+I'm not a developer; I just love coding in my free time, especially when software meets hardware. Still a Padawan, always learning.
 
 I write my contributions to other people's repositories myself. Some of my personal projects are **vibe-coded with AI**, including OSCMidi.
 

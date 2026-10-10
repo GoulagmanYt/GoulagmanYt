@@ -119,12 +119,16 @@ class Drawing:
         path.with_name(path.stem + "-dark.svg").write_text(dark, encoding="utf-8")
 
 
-def draw_name(name, username):
-    art = Drawing(142, f"{name} / {username}", "A handwritten signature with a small audio sketch.")
+def draw_name(name):
+    art = Drawing(120, name, "A handwritten signature with a small X-wing sketch among a few stars.")
     art.text(name, 6, 78, 76)
-    art.text(username, 10, 120, 26, MUTED)
     art.line("M 10,91 Q 140,96 302,88", "#9da98a", 2)
-    art.line("M 628,77 L 644,77 L 652,56 L 662,98 L 673,41 L 684,94 L 694,65 L 701,77 L 735,77", "#9da98a", 1.5)
+    # A tiny front-view X-wing, kept as quiet line art rather than a themed banner.
+    art.line("M 657,48 L 678,65 L 700,48 M 657,88 L 678,71 L 700,88", "#9da98a", 1.4)
+    art.line("M 674,63 L 682,63 L 684,68 L 681,74 L 675,74 L 672,68 Z", "#9da98a", 1.2)
+    art.line("M 656,43 L 656,53 M 701,43 L 701,53 M 656,83 L 656,93 M 701,83 L 701,93", "#9da98a", 1.2)
+    for x, y in [(628, 36), (733, 66), (616, 94)]:
+        art.line(f"M {x-2},{y} L {x+2},{y} M {x},{y-2} L {x},{y+2}", MUTED, 0.8)
     art.save(ROOT / "assets/name.svg")
 
 
@@ -250,7 +254,7 @@ def main():
     except Exception as exc:
         print(f"Warning: profile views unavailable: {exc}")
         views = None
-    draw_name(profile.get("name") or username, username)
+    draw_name("Goulagman")
     draw_languages(languages, project_count)
     draw_stats(stars, views, streak(history, today), days, today)
     print(f"Generated profile for {username}: {stars} stars, {views} views, {streak(history, today)} day streak")
