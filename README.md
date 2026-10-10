@@ -33,12 +33,12 @@
   <source media="(max-width: 600px) and (prefers-color-scheme: dark)" srcset="assets/project-piano-mobile-dark.svg" />
   <source media="(max-width: 600px)" srcset="assets/project-piano-mobile.svg" />
   <source media="(prefers-color-scheme: dark)" srcset="assets/project-piano-dark.svg" />
-  <a href="https://github.com/GoulagmanYt/Piano-LED-Visualizer"><img src="assets/project-piano.svg" width="760" alt="Piano LED Visualizer: connect an LED strip to a Raspberry Pi for an immersive visual experience on piano. Python, Raspberry Pi." /></a>
+  <a href="https://github.com/GoulagmanYt/Piano-LED-Visualizer"><img src="assets/project-piano.svg" width="760" alt="Piano LED Visualizer: connect an LED strip to a Raspberry Pi for an immersive visual experience on piano. Custom fork optimized for Raspberry Pi Zero 2 W. Python, Raspberry Pi Zero 2 W." /></a>
 </picture>
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/link-tester-dark.svg" />
-  <a href="https://github.com/GoulagmanYt/Piano_Led_Visualizer_menulcd_tester"><img src="assets/link-tester.svg" width="248" alt="Menu tester experiment" /></a>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/link-fork-dark.svg" />
+  <a href="https://github.com/GoulagmanYt/Piano-LED-Visualizer"><img src="assets/link-fork.svg" width="262" alt="Piano LED Visualizer fork" /></a>
 </picture>
 
 <picture>

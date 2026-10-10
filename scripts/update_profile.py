@@ -213,8 +213,9 @@ def draw_content():
             "A Windows bridge for RTP-MIDI, local MIDI, OSC, and VST instruments."],
             "Rust / TypeScript / Tauri / Vibe-coded with AI"),
         ("project-piano", "Piano LED Visualizer", [
-            "Connect an LED strip to a Raspberry Pi for an immersive visual experience on piano."],
-            "Python / Raspberry Pi / Hardware & Music"),
+            "Connect an LED strip to a Raspberry Pi for an immersive visual experience on piano.",
+            "Custom fork optimized for the Raspberry Pi Zero 2 W."],
+            "Python / Raspberry Pi Zero 2 W / Optimized fork"),
     ]
     for filename, title, paragraphs, note in blocks:
         for mobile in [False, True]:
@@ -246,7 +247,6 @@ def draw_content():
             art.save(ROOT / f'assets/{filename}{"-mobile" if mobile else ""}.svg')
     for filename, title, width in [("link-downloads", "Releases & downloads", 242),
                                     ("link-fork", "Piano LED Visualizer fork", 262),
-                                    ("link-tester", "Menu tester experiment", 248),
                                     ("link-repos", "All repositories", 187),
                                     ("link-prs", "My pull requests", 192)]:
         art = Drawing(38, title, title, width)
