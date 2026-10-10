@@ -86,7 +86,7 @@ class Drawing:
                       f'viewBox="0 0 760 {height}" role="img" aria-labelledby="title desc">',
                       f'<title id="title">{escape(title)}</title>',
                       f'<desc id="desc">{escape(description)}</desc>',
-                      f'<rect width="760" height="{height}" rx="12" fill="{PAPER}"/>']
+                      '<!-- Transparent canvas integrates with the GitHub theme. -->']
 
     def text(self, value, x, y, size, color=INK, center=False):
         value = str(value)
@@ -109,35 +109,23 @@ class Drawing:
         self.parts.append(f'<path d="{path}" fill="none" stroke="{color}" stroke-width="{width}" stroke-linecap="round"/>')
 
     def save(self, path):
-        path.write_text("\n".join(self.parts + ["</svg>"]) + "\n", encoding="utf-8")
+        svg = "\n".join(self.parts + ["</svg>"]) + "\n"
+        path.write_text(svg, encoding="utf-8")
+        dark_colors = {INK: "#e6edf3", MUTED: "#a4afa5", "#dadcd0": "#303a35",
+                       "#d7ddcd": "#303a35", "#e5e7dd": "#26312b", "#ecece3": "#222c25",
+                       "#d7deca": "#3c523e", "#acbea0": "#628166", "#7f9a73": "#90b18d",
+                       "#506e49": "#bed5ac", "#65805e": "#a1ba90"}
+        dark = re.sub(r"#[0-9a-fA-F]{6}", lambda match: dark_colors.get(match[0], match[0]), svg)
+        path.with_name(path.stem + "-dark.svg").write_text(dark, encoding="utf-8")
 
 
 def draw_name(name, username):
-    art = Drawing(190, f"{name} / {username}", "Handwritten names with small engineering and audio sketches.")
-    # Quiet graph-paper corners, a dimensioned part, and an audio waveform.
-    for x in list(range(28, 181, 16)) + list(range(588, 741, 16)):
-        for y in range(25, 174, 16):
-            art.parts.append(f'<circle cx="{x}" cy="{y}" r="0.7" fill="#d8ddcf"/>')
-    art.line("M 57,79 L 109,64 L 140,84 L 88,101 Z M 57,79 L 58,117 L 89,138 L 140,119 L 140,84 M 88,101 L 89,138", "#9ba68e", 1.5)
-    art.line("M 50,146 L 83,166 M 49,141 L 49,151 M 83,161 L 83,171", "#b8beac")
-    art.line("M 618,101 Q 627,101 634,101 L 640,83 L 649,124 L 658,63 L 668,131 L 678,88 L 685,101 L 711,101", "#9ba68e", 1.7)
-    art.line("M 616,144 Q 661,146 711,142", "#d5d9cb")
-    art.text(name, 380, 91, 68, center=True)
-    art.line("M 255,107 Q 369,111 503,103", "#9da98a", 2.5)
-    art.line("M 281,113 Q 380,115 479,108", "#d7ddcd", 1.3)
-    art.text(username, 380, 149, 27, MUTED, center=True)
+    art = Drawing(142, f"{name} / {username}", "A handwritten signature with a small audio sketch.")
+    art.text(name, 6, 78, 76)
+    art.text(username, 10, 120, 26, MUTED)
+    art.line("M 10,91 Q 140,96 302,88", "#9da98a", 2)
+    art.line("M 628,77 L 644,77 L 652,56 L 662,98 L 673,41 L 684,94 L 694,65 L 701,77 L 735,77", "#9da98a", 1.5)
     art.save(ROOT / "assets/name.svg")
-
-
-def draw_sections():
-    for filename, title, number in [("workbench", "On my workbench", "01"),
-                                     ("toolbox", "Languages & tools", "02"),
-                                     ("activity", "A little activity", "03")]:
-        art = Drawing(58, title, title)
-        art.text(number, 25, 38, 21, MUTED)
-        art.text(title, 69, 41, 36)
-        art.line("M 328,32 Q 505,30 731,33", "#d7ddcd")
-        art.save(ROOT / f"assets/{filename}.svg")
 
 
 def language_totals(repos, username):
@@ -263,7 +251,6 @@ def main():
         print(f"Warning: profile views unavailable: {exc}")
         views = None
     draw_name(profile.get("name") or username, username)
-    draw_sections()
     draw_languages(languages, project_count)
     draw_stats(stars, views, streak(history, today), days, today)
     print(f"Generated profile for {username}: {stars} stars, {views} views, {streak(history, today)} day streak")
