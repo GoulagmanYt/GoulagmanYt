@@ -18,8 +18,17 @@ from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.ttLib import TTFont
 
 ROOT = Path(__file__).resolve().parents[1]
+ACCENT_LIGHT = "#2d7a4c"  # Crisp botanical emerald (high contrast in light mode)
+ACCENT_DARK = "#4ade80"   # Luminous mint emerald (pops cleanly in dark mode)
+DIVIDER_LIGHT = "#d0dbcd" # Subtle line divider
+DIVIDER_DARK = "#263628"  # Subtle dark line divider
+
 PAPER, INK, MUTED = "#faf8f2", "#343c36", "#72766a"
-COLORS = ["#ecece3", "#d7deca", "#acbea0", "#7f9a73", "#506e49"]
+COLORS = ["#e8ede7", "#a3e6a9", "#48c769", "#2e9e4f", "#1c6d35"]
+COLORS_DARK = ["#161b22", "#0e4429", "#006d32", "#26a641", "#39d353"]
+
+LANG_PALETTE_LIGHT = ["#2d7a4c", "#3d8f5b", "#5aa873", "#7ec092", "#2c8f85", "#a5c4ad"]
+LANG_PALETTE_DARK = ["#4ade80", "#26a641", "#56d364", "#7ee787", "#4ec9b0", "#8bc49f"]
 
 
 def gh(*args):
@@ -105,6 +114,9 @@ class Drawing:
             x += self.glyphs[name].width * scale
         self.parts.append('</g>')
 
+    def circle(self, cx, cy, r, color=MUTED, width=1):
+        self.parts.append(f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{color}" stroke-width="{width}"/>')
+
     def line(self, path, color=MUTED, width=1):
         self.parts.append(f'<path d="{path}" fill="none" stroke="{color}" stroke-width="{width}" stroke-linecap="round"/>')
 
@@ -123,24 +135,72 @@ class Drawing:
     def save(self, path):
         svg = "\n".join(self.parts + ["</svg>"]) + "\n"
         path.write_text(svg, encoding="utf-8")
-        dark_colors = {INK: "#e6edf3", MUTED: "#a4afa5", "#dadcd0": "#303a35",
-                       "#d7ddcd": "#303a35", "#e5e7dd": "#26312b", "#ecece3": "#222c25",
-                       "#d7deca": "#3c523e", "#acbea0": "#628166", "#7f9a73": "#90b18d",
-                       "#506e49": "#bed5ac", "#65805e": "#a1ba90"}
+        dark_colors = {
+            INK: "#e6edf3",
+            MUTED: "#a4afa5",
+            ACCENT_LIGHT: ACCENT_DARK,
+            DIVIDER_LIGHT: DIVIDER_DARK,
+            "#dadcd0": DIVIDER_DARK,
+            "#d7ddcd": DIVIDER_DARK,
+            "#e5e7dd": "#212824",
+            "#9da98a": ACCENT_DARK,
+            "#65805e": LANG_PALETTE_DARK[0],
+        }
+        for cl, cd in zip(COLORS, COLORS_DARK):
+            dark_colors[cl] = cd
+        for cl, cd in zip(LANG_PALETTE_LIGHT, LANG_PALETTE_DARK):
+            dark_colors[cl] = cd
         dark = re.sub(r"#[0-9a-fA-F]{6}", lambda match: dark_colors.get(match[0], match[0]), svg)
         path.with_name(path.stem + "-dark.svg").write_text(dark, encoding="utf-8")
 
 
 def draw_name(name):
-    art = Drawing(120, name, "A handwritten signature with a small X-wing sketch among a few stars.")
+    art = Drawing(120, name, "A handwritten signature with a detailed X-wing starfighter sketch in attack position among stars.")
     art.text(name, 6, 78, 76)
-    art.line("M 10,91 Q 140,96 302,88", "#9da98a", 2)
-    # A tiny front-view X-wing, kept as quiet line art rather than a themed banner.
-    art.line("M 657,48 L 678,65 L 700,48 M 657,88 L 678,71 L 700,88", "#9da98a", 1.4)
-    art.line("M 674,63 L 682,63 L 684,68 L 681,74 L 675,74 L 672,68 Z", "#9da98a", 1.2)
-    art.line("M 656,43 L 656,53 M 701,43 L 701,53 M 656,83 L 656,93 M 701,83 L 701,93", "#9da98a", 1.2)
-    for x, y in [(628, 36), (733, 66), (616, 94)]:
-        art.line(f"M {x-2},{y} L {x+2},{y} M {x},{y-2} L {x},{y+2}", MUTED, 0.8)
+    art.line("M 10,91 Q 140,96 302,88", ACCENT_LIGHT, 2)
+    # Master Front-View X-wing in Attack Position (Lock S-Foils)
+    # Central fuselage & nose cone
+    art.line("M 677,48 L 672,59 L 670,72 L 677,85 L 684,72 L 682,59 Z", ACCENT_LIGHT, 1.5)
+    art.line("M 677,61 L 677,85", ACCENT_LIGHT, 0.8)
+    # Cockpit canopy & glass framing
+    art.line("M 673,63 L 681,63 L 679,72 L 675,72 Z", ACCENT_LIGHT, 1.2)
+    art.line("M 677,63 L 677,72", ACCENT_LIGHT, 0.8)
+    art.line("M 674,67 L 680,67", ACCENT_LIGHT, 0.7)
+    # Astromech droid R2 unit dome
+    art.line("M 674,56 A 3,3 0 0,1 680,56 Z", ACCENT_LIGHT, 1.1)
+
+    # 4 Engine Intakes (circular turbine nacelles at wing roots)
+    for cx, cy in [(663, 58), (663, 74), (691, 58), (691, 74)]:
+        art.circle(cx, cy, 4.5, ACCENT_LIGHT, 1.3)
+        art.circle(cx, cy, 1.8, ACCENT_LIGHT, 0.8)
+
+    # 4 S-Foil Wings in Attack Position (aerodynamic foil double lines)
+    # Upper Left
+    art.line("M 658,55 L 620,34 L 622,40 L 659,59", ACCENT_LIGHT, 1.4)
+    art.line("M 640,45 L 642,48", ACCENT_LIGHT, 0.8)
+    # Lower Left
+    art.line("M 658,77 L 620,98 L 622,92 L 659,73", ACCENT_LIGHT, 1.4)
+    art.line("M 640,87 L 642,84", ACCENT_LIGHT, 0.8)
+    # Upper Right
+    art.line("M 696,55 L 734,34 L 732,40 L 695,59", ACCENT_LIGHT, 1.4)
+    art.line("M 714,45 L 712,48", ACCENT_LIGHT, 0.8)
+    # Lower Right
+    art.line("M 696,77 L 734,98 L 732,92 L 695,73", ACCENT_LIGHT, 1.4)
+    art.line("M 714,87 L 712,84", ACCENT_LIGHT, 0.8)
+
+    # 4 Wingtip Laser Cannons with Cooling Coils & Muzzle Flares
+    # Upper Left Cannon
+    art.line("M 620,23 L 620,45 M 617,25 L 623,25 M 618,28 L 622,28 M 618,31 L 622,31", ACCENT_LIGHT, 1.3)
+    # Lower Left Cannon
+    art.line("M 620,87 L 620,109 M 617,107 L 623,107 M 618,104 L 622,104 M 618,101 L 622,101", ACCENT_LIGHT, 1.3)
+    # Upper Right Cannon
+    art.line("M 734,23 L 734,45 M 731,25 L 737,25 M 732,28 L 736,28 M 732,31 L 736,31", ACCENT_LIGHT, 1.3)
+    # Lower Right Cannon
+    art.line("M 734,87 L 734,109 M 731,107 L 737,107 M 732,104 L 736,104 M 732,101 L 736,101", ACCENT_LIGHT, 1.3)
+
+    # Starfield
+    for x, y in [(596, 50), (755, 56), (604, 88), (748, 84)]:
+        art.line(f"M {x-3},{y} L {x+3},{y} M {x},{y-3} L {x},{y+3}", MUTED, 0.8)
     art.save(ROOT / "assets/name.svg")
 
 
@@ -152,9 +212,9 @@ def draw_content():
         ("project-osc", "OSCMidi", [
             "A Windows bridge for RTP-MIDI, local MIDI, OSC, and VST instruments."],
             "Rust / TypeScript / Tauri / Vibe-coded with AI"),
-        ("project-piano", "Piano LED menu tester", [
-            "A small experiment to test and display Piano LED Visualizer menus."],
-            "Python / AI-assisted experiment"),
+        ("project-piano", "Piano LED Visualizer", [
+            "Connect an LED strip to a Raspberry Pi for an immersive visual experience on piano."],
+            "Python / Raspberry Pi / Hardware & Music"),
     ]
     for filename, title, paragraphs, note in blocks:
         for mobile in [False, True]:
@@ -182,15 +242,16 @@ def draw_content():
         for mobile in [False, True]:
             art = Drawing(64, title, title, 380 if mobile else 760)
             art.text(title, 12 if mobile else 36, 43, 30 if mobile else 34)
-            art.line("M 220,34 L 368,34" if mobile else "M 300,34 Q 490,32 723,34", "#dadcd0")
+            art.line("M 220,34 L 368,34" if mobile else "M 300,34 Q 490,32 723,34", DIVIDER_LIGHT)
             art.save(ROOT / f'assets/{filename}{"-mobile" if mobile else ""}.svg')
     for filename, title, width in [("link-downloads", "Releases & downloads", 242),
                                     ("link-fork", "Piano LED Visualizer fork", 262),
+                                    ("link-tester", "Menu tester experiment", 248),
                                     ("link-repos", "All repositories", 187),
                                     ("link-prs", "My pull requests", 192)]:
         art = Drawing(38, title, title, width)
         art.text(title, 36, 26, 25)
-        art.line(f"M 37,32 Q {width//2},34 {width-12},31", "#9da98a")
+        art.line(f"M 37,32 Q {width//2},34 {width-12},31", ACCENT_LIGHT)
         art.save(ROOT / f"assets/{filename}.svg")
 
 
@@ -231,7 +292,7 @@ def draw_languages(totals, project_count):
     art = Drawing(280, "Languages in my projects", description)
     art.text("Languages in my projects", 36, 43, 30)
     art.text(f"{project_count} public projects / by code size", 36, 72, 21, MUTED)
-    palette = ["#65805e", "#899d7e", "#a9b69d", "#b3aa8e", "#8eaaa4", "#c6c8b7"]
+    palette = LANG_PALETTE_LIGHT
     if not shares:
         art.text("No language data yet", 36, 143, 27, MUTED)
     for i, (name, percent) in enumerate(shares):
@@ -259,9 +320,9 @@ def draw_stats(stars, views, current, days, today):
                              (626, f"{current} " + ("day" if current == 1 else "days"), "current streak")]:
         art.text(value, x, 61, 42 if views is not None or x != 380 else 29, center=True)
         art.text(label, x, 91, 24, MUTED, center=True)
-    art.line("M 257,30 Q 255,61 257,91", "#dadcd0")
-    art.line("M 503,30 Q 501,59 503,91", "#dadcd0")
-    art.line("M 35,115 Q 370,113 725,116", "#dadcd0")
+    art.line("M 257,30 Q 255,61 257,91", DIVIDER_LIGHT)
+    art.line("M 503,30 Q 501,59 503,91", DIVIDER_LIGHT)
+    art.line("M 35,115 Q 370,113 725,116", DIVIDER_LIGHT)
     art.text("contributions / past year", 36, 149, 26)
     art.text(f"{total:,} contributions", 569, 149, 22, MUTED)
     start = date.fromisoformat(days[0]["date"])
