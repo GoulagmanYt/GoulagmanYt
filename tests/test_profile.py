@@ -50,6 +50,35 @@ class ProfileTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             parse_views('<svg aria-label="Profile views: unavailable"/>')
 
+    @patch("scripts.update_profile.time.sleep")
+    @patch("scripts.update_profile.subprocess.run")
+    def test_gh_retry_success_after_failure(self, mock_run, mock_sleep):
+        import subprocess
+        from scripts.update_profile import gh
+
+        fail = subprocess.CalledProcessError(1, ["gh"], stderr="temporary glitch")
+        success = unittest.mock.Mock(stdout='{"data": 123}')
+        mock_run.side_effect = [fail, success]
+
+        result = gh("test", retries=2, delay=0.01)
+        self.assertEqual(result, {"data": 123})
+        self.assertEqual(mock_run.call_count, 2)
+        mock_sleep.assert_called_once()
+
+    @patch("scripts.update_profile.time.sleep")
+    @patch("scripts.update_profile.subprocess.run")
+    def test_gh_raises_runtime_error_with_stderr_after_all_retries(self, mock_run, mock_sleep):
+        import subprocess
+        from scripts.update_profile import gh
+
+        fail = subprocess.CalledProcessError(1, ["gh"], stderr="HTTP 502 Bad Gateway")
+        mock_run.side_effect = fail
+
+        with self.assertRaises(RuntimeError) as ctx:
+            gh("test", retries=2, delay=0.01)
+        self.assertIn("HTTP 502 Bad Gateway", str(ctx.exception))
+        self.assertEqual(mock_run.call_count, 2)
+
 
 if __name__ == "__main__":
     unittest.main()

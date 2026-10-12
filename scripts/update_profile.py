@@ -11,6 +11,7 @@ from pathlib import Path
 import random
 import re
 import subprocess
+import time
 from urllib.request import Request, urlopen
 import xml.etree.ElementTree as ET
 
@@ -31,12 +32,36 @@ LANG_PALETTE_LIGHT = ["#2d7a4c", "#3d8f5b", "#5aa873", "#7ec092", "#2c8f85", "#a
 LANG_PALETTE_DARK = ["#4ade80", "#26a641", "#56d364", "#7ee787", "#4ec9b0", "#8bc49f"]
 
 
-def gh(*args):
-    result = subprocess.run(["gh", "api", *args], check=True, capture_output=True, text=True, encoding="utf-8")
-    data = json.loads(result.stdout)
-    if isinstance(data, dict) and data.get("errors"):
-        raise RuntimeError(f"GitHub GraphQL failed: {data['errors']}")
-    return data
+def gh(*args, retries=3, delay=2):
+    last_err = None
+    for attempt in range(1, retries + 1):
+        try:
+            result = subprocess.run(
+                ["gh", "api", *args],
+                check=True,
+                capture_output=True,
+                text=True,
+                encoding="utf-8"
+            )
+            data = json.loads(result.stdout)
+            if isinstance(data, dict) and data.get("errors"):
+                raise RuntimeError(f"GitHub GraphQL failed: {data['errors']}")
+            return data
+        except subprocess.CalledProcessError as exc:
+            last_err = exc
+            err_msg = exc.stderr.strip() if exc.stderr else "unknown error"
+            print(f"Warning: gh api attempt {attempt}/{retries} failed: {err_msg}", flush=True)
+            if attempt < retries:
+                time.sleep(delay * attempt)
+        except Exception as exc:
+            last_err = exc
+            print(f"Warning: gh attempt {attempt}/{retries} failed: {exc}", flush=True)
+            if attempt < retries:
+                time.sleep(delay * attempt)
+    if isinstance(last_err, subprocess.CalledProcessError):
+        stderr_msg = last_err.stderr.strip() if last_err.stderr else "no stderr output"
+        raise RuntimeError(f"gh api failed after {retries} attempts: {stderr_msg}") from last_err
+    raise last_err
 
 
 def contributions(username, start, end):
@@ -366,7 +391,7 @@ def main():
     stars = sum(repo["stargazers_count"] for page in repos for repo in page)
     languages, project_count = language_totals([repo for page in repos for repo in page], username)
     start = today - timedelta(days=364)
-    days = contributions(username, f"{start}T00:00:00Z", now.isoformat())
+    days = contributions(username, f"{start}T00:00:00Z", now.strftime("%Y-%m-%dT%H:%M:%SZ"))
     history = list(days)
     while streak(history, today) >= (today - start).days and start > date.fromisoformat(profile["created_at"][:10]):
         end = start - timedelta(days=1)
